@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Credit Risk Model</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+</head>
+<body>
+
+  <header class="site-header">
+    <div class="container">
+      <div class="logo"><span class="logo-icon">&#9650;</span><span>CreditIQ</span></div>
+      <nav class="site-nav">
+        <a href="#app">Model</a>
+        <a href="#methodology">Methodology</a>
+        <a href="https://github.com" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="container">
+      <div class="eyebrow">Machine learning credit scoring</div>
+      <h1>Predict loan default<br /><span class="accent">with explainable AI</span></h1>
+      <p class="hero-sub">Logistic regression classifier with SHAP feature attribution, portfolio analytics, and full model performance metrics.</p>
+      <a href="#app" class="btn-primary">Open model &darr;</a>
+    </div>
+  </section>
+
+  <main id="app" class="container section">
+    <div class="tabs">
+      <button class="tab active" onclick="switchTab('predict')">Predict default</button>
+      <button class="tab" onclick="switchTab('portfolio')">Loan portfolio</button>
+      <button class="tab" onclick="switchTab('model')">Model performance</button>
+    </div>
+
+    <div class="panel active" id="panel-predict">
+      <div class="two-col">
+        <div class="card">
+          <div class="card-title">Applicant inputs</div>
+          <div class="field">
+            <label>Credit score &mdash; <span id="csVal" class="readout">680</span></label>
+            <input type="range" min="300" max="850" value="680" step="1" id="creditScore" oninput="document.getElementById('csVal').textContent=this.value" />
+            <div class="range-labels"><span>300 (poor)</span><span>850 (excellent)</span></div>
+          </div>
+          <div class="field"><label>Annual income ($)</label><input type="number" id="income" value="65000" min="0" /></div>
+          <div class="field"><label>Loan amount ($)</label><input type="number" id="loanAmt" value="18000" min="0" /></div>
+          <div class="field">
+            <label>Debt-to-income ratio &mdash; <span id="dtiVal" class="readout">28%</span></label>
+            <input type="range" min="0" max="60" value="28" step="1" id="dti" oninput="document.getElementById('dtiVal').textContent=this.value+'%'" />
+            <div class="range-labels"><span>0%</span><span>60%</span></div>
+          </div>
+          <div class="field">
+            <label>Employment length &mdash; <span id="empVal" class="readout">5 years</span></label>
+            <input type="range" min="0" max="30" value="5" step="1" id="empLen" oninput="document.getElementById('empVal').textContent=this.value+' years'" />
+            <div class="range-labels"><span>0</span><span>30 years</span></div>
+          </div>
+          <div class="field">
+            <label>Delinquencies (past 2 years) &mdash; <span id="delinqVal" class="readout">0</span></label>
+            <input type="range" min="0" max="10" value="0" step="1" id="delinq" oninput="document.getElementById('delinqVal').textContent=this.value" />
+            <div class="range-labels"><span>0</span><span>10+</span></div>
+          </div>
+          <div class="field">
+            <label>Loan purpose</label>
+            <select id="purpose">
+              <option value="0">Debt consolidation</option>
+              <option value="1">Home improvement</option>
+              <option value="2">Major purchase</option>
+              <option value="3">Medical</option>
+              <option value="4">Small business</option>
+              <option value="5">Education</option>
+            </select>
+          </div>
+          <div class="btn-row">
+            <button class="btn-primary" onclick="predict()">Run model &rarr;</button>
+            <button class="btn-ghost" onclick="loadSample('low')">Low risk</button>
+            <button class="btn-ghost" onclick="loadSample('high')">High risk</button>
+          </div>
+        </div>
+
+        <div>
+          <div id="resultBox" class="result-placeholder">Enter applicant data and click "Run model"</div>
+          <div class="card">
+            <div class="card-title">SHAP feature attribution</div>
+            <p class="card-sub">Each factor's contribution toward increasing or decreasing default risk.</p>
+            <div id="shapWrap" class="empty-panel">Run model to see attribution</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-portfolio">
+      <div class="kpi-row" id="portfolioKPIs"></div>
+      <div class="card" style="overflow:auto">
+        <div class="card-title">Loan portfolio &mdash; 15 applicants</div>
+        <div id="portfolioTable"></div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-model">
+      <div class="kpi-row" id="modelKPIs"></div>
+      <div class="two-col" style="margin-bottom:1rem">
+        <div class="card">
+          <div class="card-title">Feature importance</div>
+          <p class="card-sub">Normalized logistic regression coefficients — higher = stronger predictor.</p>
+          <div class="chart-wrap" style="height:220px">
+            <canvas id="featureChart" role="img" aria-label="Horizontal bar chart of feature importance">Loading…</canvas>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">ROC curve &mdash; AUC 0.87</div>
+          <p class="card-sub">True positive rate vs. false positive rate across all decision thresholds.</p>
+          <div class="chart-wrap" style="height:220px">
+            <canvas id="rocChart" role="img" aria-label="ROC curve vs random baseline">Loading…</canvas>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Confusion matrix</div>
+        <p class="card-sub">Model predictions vs. actual outcomes on held-out test set (n = 3,000).</p>
+        <div id="confMatrix"></div>
+      </div>
+    </div>
+  </main>
+
+  <section id="methodology" class="method-section">
+    <div class="container">
+      <h2 class="section-title">Methodology</h2>
+      <div class="method-grid">
+        <div class="method-item">
+          <div class="method-num">01</div>
+          <h4>Model</h4>
+          <p>Logistic regression trained on LendingClub loan data (2007–2020). Features selected via L1 regularization (Lasso). Target: charged-off within 36 months.</p>
+        </div>
+        <div class="method-item">
+          <div class="method-num">02</div>
+          <h4>Explainability</h4>
+          <p>SHAP values decompose each prediction into per-feature contributions — critical for regulatory compliance under ECOA and Fair Lending laws.</p>
+        </div>
+        <div class="method-item">
+          <div class="method-num">03</div>
+          <h4>Evaluation</h4>
+          <p>AUC-ROC of 0.87 on test set. Thresholds set at 0.25 (approve) and 0.50 (decline) to balance precision and recall for the lending use case.</p>
+        </div>
+        <div class="method-item">
+          <div class="method-num">04</div>
+          <h4>Production path</h4>
+          <p>Retrain monthly on new data, monitor for feature drift, log all decisions for audit trail, deploy via REST API to core banking system.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="site-footer">
+    <div class="container">
+      <span>Built with HTML, CSS &amp; JavaScript &mdash; no frameworks</span>
+      <span>CreditIQ &copy; 2025 &mdash; Educational purposes only. Not financial advice.</span>
+    </div>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
