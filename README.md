@@ -2,7 +2,7 @@
 
 A machine learning credit scoring app that predicts loan default probability using logistic regression — with SHAP feature attribution, portfolio analytics, and full model performance metrics.
 
-**Live demo:** [yourusername.github.io/credit-risk-model](https://yourusername.github.io/credit-risk-model)
+**Live demo:** [lystonmcnear.github.io/credit-risk-model](https://lystonmcnear.github.io/credit-risk-model)
 
 ## Features
 
